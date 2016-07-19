@@ -1,1 +1,1 @@
-Docker compose for shift_scheduling.
+Docker compose for shift_scheduling - https://github.com/kushalahmed/shift_scheduling
