@@ -1,0 +1,95 @@
+version: '2'
+
+services:
+  devloadbalancer:
+    image: dockercloud/haproxy:1.5.1
+    depends_on:
+      - devshiftscheduling
+    environment:
+      - ADDITIONAL_SERVICES=development:devshiftscheduling
+      - DEBUG=1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "80:80"
+      - "1936:1936"
+    networks:
+      - dev-back-tier
+
+  devshiftscheduling:
+    extends:
+      file: ../docker-compose-common.yml
+      service: shiftscheduling
+    build: ../shift_scheduling/
+    ports:
+      - "6542"
+    networks:
+      - dev-back-tier
+    environment:
+      - DB_HOST=devmysqldb
+      - MYSQL_ROOT_USER=root
+      - MYSQL_ROOT_PASSWORD=admin
+      - MYSQL_DB_SCHEMA_NAME=shiftdb
+      - ES_HOST=develasticsearch
+      - RABBITMQ_HOST=devrabbitmq
+
+  devmysqldb:
+    extends:
+      file: ../docker-compose-common.yml
+      service: mysqldb
+    environment:
+      - MYSQL_ROOT_PASSWORD=admin
+    ports:
+      - "3306:3306"
+    networks:
+      - dev-back-tier
+    volumes:
+      - dev-mysql-data:/var/lib/mysql
+
+  develasticsearch:
+    extends:
+      file: ../docker-compose-common.yml
+      service: elasticsearch
+    ports:
+      - "9200:9200"
+    networks:
+      - dev-back-tier
+    volumes:
+      - dev-es-data:/usr/share/elasticsearch/data
+    environment:
+      - ES_HOST=develasticsearch
+      - ES_PORT=9200
+      - SHIFT_INDEX_NAME=shift_repo
+      - SHIFT_INDEX_DOCTYPE=item
+      - EMPLOYEE_INDEX_NAME=shift_employees
+      - EMPLOYEE_INDEX_DOCTYPE=employee
+      - LOG_INDEX_NAME=shift_logs
+      - LOG_INDEX_DOCTYPE=log
+
+  devrabbitmq:
+    extends:
+      file: ../docker-compose-common.yml
+      service: rabbitmq
+    ports:
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+    networks:
+      - dev-back-tier
+    volumes:
+      - dev-rabbitmq-data:/var/lib/rabbitmq
+
+
+networks:
+  dev-back-tier:
+
+volumes:
+  dev-haproxy-socket:
+  dev-haproxy-data:
+  dev-es-data:
+    #driver: flocker
+  dev-mysql-data:
+    #driver: flocker
+  dev-rabbitmq-data:
+    #driver: flocker

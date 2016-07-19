@@ -1,0 +1,92 @@
+version: '2'
+
+services:
+  prodloadbalancer:
+    image: dockercloud/haproxy:1.5.1
+    depends_on:
+      - prodshiftscheduling
+    environment:
+      - ADDITIONAL_SERVICES=production:prodshiftscheduling
+      - DEBUG=1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "80:80"
+      - "1936:1936"
+    networks:
+      - prod-back-tier
+
+  prodshiftscheduling:
+    extends:
+      file: ../docker-compose-common.yml
+      service: shiftscheduling
+    image: shiftscheduling:0.0.1
+    ports:
+      - "6542"
+    networks:
+      - prod-back-tier
+    environment:
+      - DB_HOST=prodmysqldb
+      - MYSQL_ROOT_USER=root
+      - MYSQL_ROOT_PASSWORD=admin
+      - MYSQL_DB_SCHEMA_NAME=shiftdb
+      - ES_HOST=prodelasticsearch
+      - RABBITMQ_HOST=prodrabbitmq
+
+  prodmysqldb:
+    extends:
+      file: ../docker-compose-common.yml
+      service: mysqldb
+    environment:
+      - MYSQL_ROOT_PASSWORD=admin
+    ports:
+      - "3306:3306"
+    networks:
+      - prod-back-tier
+    volumes:
+      - prod-mysql-data:/var/lib/mysql
+
+  prodelasticsearch:
+    extends:
+      file: ../docker-compose-common.yml
+      service: elasticsearch
+    ports:
+      - "9200:9200"
+    networks:
+      - prod-back-tier
+    volumes:
+      - prod-es-data:/usr/share/elasticsearch/data
+    environment:
+      - ES_HOST=prodelasticsearch
+      - ES_PORT=9200
+      - SHIFT_INDEX_NAME=shift_repo
+      - SHIFT_INDEX_DOCTYPE=item
+      - EMPLOYEE_INDEX_NAME=shift_employees
+      - EMPLOYEE_INDEX_DOCTYPE=employee
+      - LOG_INDEX_NAME=shift_logs
+      - LOG_INDEX_DOCTYPE=log
+
+  prodrabbitmq:
+    extends:
+      file: ../docker-compose-common.yml
+      service: rabbitmq
+    ports:
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+    networks:
+      - prod-back-tier
+    volumes:
+      - prod-rabbitmq-data:/var/lib/rabbitmq
+
+
+networks:
+  prod-back-tier:
+
+volumes:
+  prod-haproxy-socket:
+  prod-haproxy-data:
+  prod-es-data:
+  prod-mysql-data:
+  prod-rabbitmq-data:
