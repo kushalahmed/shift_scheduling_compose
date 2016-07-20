@@ -30,6 +30,7 @@ services:
       - MYSQL_ROOT_USER=root
       - MYSQL_ROOT_PASSWORD=admin
       - MYSQL_DB_SCHEMA_NAME=shiftdb
+      - INITIALISE_DATABASE_TABLES=false
       - ES_HOST=prodelasticsearch
       - RABBITMQ_HOST=prodrabbitmq
 
